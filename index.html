@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite Booster Collector</title>
+    <style>
+        :root {
+            --accent: #00f2ff;
+            --pack-grad: linear-gradient(165deg, #2c3e50 0%, #000000 40%, #1a2a6c 100%);
+            --crimp-pattern: repeating-linear-gradient(90deg, 
+                rgba(0,0,0,0.4) 0px, rgba(0,0,0,0.4) 1px, 
+                transparent 2px, 
+                rgba(255,255,255,0.05) 3px);
+        }
+
+        body {
+            background: radial-gradient(circle at center, #1b2735 0%, #020205 100%);
+            margin: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden; font-family: 'Segoe UI', sans-serif;
+        }
+
+        /* Пакет */
+        #pack-container { position: relative; width: 220px; height: 320px; z-index: 10; }
+        .booster { position: absolute; width: 100%; height: 100%; cursor: pointer; }
+        
+        .part {
+            position: absolute; width: 100%; left: 0;
+            background: var(--pack-grad);
+            border: 1px solid rgba(255,255,255,0.15); box-sizing: border-box;
+            transition: all 0.8s cubic-bezier(0.5, 0, 0.2, 1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+
+        .top { 
+            top: 0; height: 75px; border-radius: 6px 6px 0 0; z-index: 2;
+            background-image: var(--crimp-pattern); background-size: 100% 12px; background-repeat: no-repeat;
+        }
+        .bottom { 
+            bottom: 0; height: 250px; border-radius: 0 0 6px 6px; z-index: 1;
+            background-image: var(--crimp-pattern); background-position: bottom;
+            background-size: 100% 12px; background-repeat: no-repeat;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .tear {
+            position: absolute; width: 100%; height: 14px;
+            background-image: linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.1) 50%), 
+                              linear-gradient(225deg, transparent 50%, rgba(255,255,255,0.1) 50%);
+            background-size: 10px 10px;
+        }
+        .top .tear { bottom: -10px; transform: rotate(180deg); }
+        .bottom .tear { top: -5px; }
+
+        .ripped .top { transform: translateY(-400px) rotate(-15deg); opacity: 0; }
+        .ripped .bottom { transform: translateY(600px) rotate(10deg); opacity: 0; }
+
+        @keyframes packFall {
+            0% { transform: translateY(-900px) scale(0.7); opacity: 0; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .fall-anim { animation: packFall 0.7s cubic-bezier(0.2, 0.8, 0.2, 1.1); }
+
+        /* Колода (Рука) */
+        #hand {
+            position: absolute; bottom: 40px;
+            width: 100%; height: 200px;
+            display: flex; justify-content: center; align-items: flex-end;
+            pointer-events: none;
+        }
+
+        .card-wrapper {
+            position: absolute;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            pointer-events: auto;
+        }
+
+        .card {
+            width: 140px; height: 200px;
+            background: #fff; border: 4px solid #fff; border-radius: 8px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.4s;
+            overflow: hidden; cursor: pointer;
+        }
+        
+        .card img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+        
+        .card-wrapper:hover .card { 
+            transform: translateY(-90px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.8);
+            z-index: 100;
+        }
+
+        @keyframes shoot {
+            0% { transform: translate(0, -450px) scale(0.3); opacity: 0; }
+            100% { opacity: 1; }
+        }
+        .shoot-anim { animation: shoot 0.7s cubic-bezier(0.165, 0.84, 0.44, 1) forwards; }
+    </style>
+</head>
+<body>
+
+    <div id="pack-container"></div>
+    <div id="hand"></div>
+
+    <script>
+        // --- НАСТРОЙКИ ---
+        const TOTAL_CARDS = 10; // Укажи здесь количество картинок в папке cards/
+        const deck = [];
+        let isOpening = false;
+
+        const container = document.getElementById('pack-container');
+        const hand = document.getElementById('hand');
+
+        // Автоматическое заполнение колоды путями к файлам
+        function initDeck() {
+            for (let i = 1; i <= TOTAL_CARDS; i++) {
+                // Код ищет файлы cards/1.jpg, cards/2.jpg и т.д.
+                deck.push(`cards/${i}.jpg`);
+            }
+            spawnPack();
+        }
+
+        function spawnPack() {
+            container.innerHTML = '';
+            const p = document.createElement('div');
+            p.className = 'booster fall-anim';
+            p.innerHTML = `
+                <div class="part top"><div class="tear"></div></div>
+                <div class="part bottom">
+                    <div class="tear"></div>
+                    <div style="color:rgba(255,255,255,0.15); font-weight:900; letter-spacing:8px; font-size:20px">ELITE</div>
+                </div>
+            `;
+            p.onclick = () => {
+                if (isOpening || deck.length === 0) return;
+                isOpening = true;
+                p.classList.add('ripped');
+                
+                setTimeout(drawCard, 350);
+                setTimeout(spawnPack, 1400);
+            };
+            container.appendChild(p);
+            isOpening = false;
+        }
+
+        function drawCard() {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'card-wrapper shoot-anim';
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            
+            // Берем случайную карту из загруженного списка
+            const imgUrl = deck[Math.floor(Math.random() * deck.length)];
+            card.innerHTML = `<img src="${imgUrl}" draggable="false">`;
+            
+            wrapper.appendChild(card);
+            hand.appendChild(wrapper);
+            
+            updateHand();
+            
+            setTimeout(() => {
+                wrapper.classList.remove('shoot-anim');
+            }, 700);
+        }
+
+        function updateHand() {
+            const wrappers = hand.querySelectorAll('.card-wrapper');
+            const total = wrappers.length;
+            if (total === 0) return;
+
+            const screenWidth = window.innerWidth * 0.85;
+            const overlap = Math.min(150, screenWidth / total);
+            const startX = -((total - 1) * overlap) / 2;
+
+            wrappers.forEach((wrap, i) => {
+                const xPos = startX + (i * overlap);
+                wrap.style.transform = `translateX(${xPos}px)`;
+                wrap.style.zIndex = i;
+            });
+        }
+
+        window.addEventListener('resize', updateHand);
+        
+        // Запуск игры
+        initDeck();
+    </script>
+</body>
+</html>
